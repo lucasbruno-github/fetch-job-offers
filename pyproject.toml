@@ -1,0 +1,19 @@
+[project]
+name = "fetch-job-offers"
+version = "0.1.0"
+description = "Fetch daily Data Scientist job offers from LinkedIn, analyze against CV, generate cover letters, send by email"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "google-genai>=1.65.0",
+    "python-dotenv>=1.2.2",
+    "requests>=2.32.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fetch_job_offers"]

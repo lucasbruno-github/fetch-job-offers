@@ -9,6 +9,7 @@ dependencies = [
     "google-genai>=1.65.0",
     "python-dotenv>=1.2.2",
     "requests>=2.32.5",
+    "typer>=0.24.1",
 ]
 
 [build-system]

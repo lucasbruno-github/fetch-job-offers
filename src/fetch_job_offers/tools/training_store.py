@@ -65,8 +65,8 @@ def append(
         "company": company,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "messages": [
-            {"role": "system",    "content": system_prompt},
-            {"role": "user",      "content": user_prompt},
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
             {"role": "assistant", "content": output},
         ],
     }

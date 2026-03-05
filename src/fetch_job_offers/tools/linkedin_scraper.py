@@ -29,7 +29,7 @@ def fetch_jobs(
     query: str,
     location: str = "",
     hours_old: int = 24,
-    max_results: int = 10,
+    max_results: int = 20,
 ) -> list[JobOffer]:
     """
     Fetch job listings from LinkedIn's public job search.
@@ -43,29 +43,52 @@ def fetch_jobs(
     Returns:
         List of JobOffer dicts with full descriptions.
     """
-    params = {
-        "keywords": query,
-        "location": location,
-        "f_TPR": f"r{hours_old * 3600}",  # r86400 = last 24 hours
-        "start": 0,
-        "count": max_results,
-    }
-
     logger.info("Fetching LinkedIn jobs: query=%r location=%r hours_old=%d", query, location, hours_old)
 
-    try:
-        resp = requests.get(_SEARCH_URL, headers=_HEADERS, params=params, timeout=15)
-        resp.raise_for_status()
-    except requests.RequestException as exc:
-        logger.error("LinkedIn search request failed: %s", exc)
-        raise
+    # LinkedIn caps each response at 10 results — paginate to reach max_results.
+    # A persistent session is required so LinkedIn cookies carry over between pages;
+    # without it the second request is treated as a new bot and returns 0 cards.
+    _PAGE_SIZE = 10
+    all_cards = []
+    start = 0
+    session = requests.Session()
+    session.headers.update(_HEADERS)
 
-    soup = BeautifulSoup(resp.text, "html.parser")
-    cards = soup.find_all("div", class_="base-card")
-    logger.info("Found %d job cards on the search page.", len(cards))
+    while len(all_cards) < max_results:
+        params = {
+            "keywords": query,
+            "location": location,
+            "f_TPR": f"r{hours_old * 3600}",
+            "start": start,
+            "count": _PAGE_SIZE,
+        }
+        extra_headers = {"Referer": "https://www.linkedin.com/jobs/search/"} if start > 0 else {}
+        try:
+            resp = session.get(_SEARCH_URL, headers=extra_headers, params=params, timeout=15)
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            logger.error("LinkedIn search request failed at start=%d: %s", start, exc)
+            raise
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        page_cards = soup.find_all("div", class_="base-card")
+        logger.info("Page start=%d: found %d job cards.", start, len(page_cards))
+
+        if not page_cards:
+            break  # No more results available
+
+        all_cards.extend(page_cards)
+        start += _PAGE_SIZE
+
+        if len(page_cards) < _PAGE_SIZE:
+            break  # Last page — fewer results than requested
+
+        time.sleep(random.uniform(2.0, 4.0))
+
+    logger.info("Total job cards collected: %d (target: %d)", len(all_cards), max_results)
 
     jobs: list[JobOffer] = []
-    for card in cards[:max_results]:
+    for card in all_cards[:max_results]:
         job = _parse_card(card)
         if job is None:
             continue
@@ -96,11 +119,7 @@ def _parse_card(card) -> Optional[JobOffer]:
         title=title_el.get_text(strip=True) if title_el else "Unknown Title",
         company=company_el.get_text(strip=True) if company_el else "Unknown Company",
         location=location_el.get_text(strip=True) if location_el else "",
-        url=(
-            link_el["href"].split("?")[0]
-            if link_el
-            else f"https://www.linkedin.com/jobs/view/{job_id}"
-        ),
+        url=(link_el["href"].split("?")[0] if link_el else f"https://www.linkedin.com/jobs/view/{job_id}"),
         description="",
     )
 

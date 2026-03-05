@@ -13,7 +13,7 @@ load_dotenv(BASE_DIR / ".env")
 class Settings:
     # --- LLM ---
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
     # --- Email ---
     GMAIL_USER: str = os.getenv("GMAIL_USER", "")

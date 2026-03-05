@@ -12,6 +12,7 @@ from google.genai import types
 
 from ..config import settings
 from ..models.schemas import JobOffer
+from ..tools import training_store
 
 logger = logging.getLogger(__name__)
 
@@ -81,4 +82,16 @@ class CVAnalyzerAgent:
             contents=prompt,
             config=self._config,
         )
-        return response.text.strip()
+        result = response.text.strip()
+
+        training_store.append(
+            agent="cv_analyzer",
+            job_id=job["job_id"],
+            job_title=job["title"],
+            company=job["company"],
+            system_prompt=_SYSTEM_PROMPT,
+            user_prompt=prompt,
+            output=result,
+        )
+
+        return result

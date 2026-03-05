@@ -152,3 +152,6 @@ seen_jobs.json
 # Personal files
 cv.md
 cover_letter_template.md
+
+# Training data (contains personal CV and cover letters)
+outputs/
